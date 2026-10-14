@@ -1,0 +1,9 @@
+.DS_Store
+inside-qwen.html
+talk-test.html
+tts/wav/
+tts/mlxenv/
+pt/node_modules/
+pt/*.log
+pt/preview*.html
+tts/*.log

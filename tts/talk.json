@@ -1,0 +1,926 @@
+[
+ {
+  "slide": 0,
+  "text": "Hi, and welcome. Today we open up a large language model, Qwen3.8-Flash-Next, and look at how it actually works.",
+  "say": "Hi, and welcome. Today we open up a large language model, Kwen three point eight Flash Next, and look at how it actually works."
+ },
+ {
+  "slide": 0,
+  "text": "You don't need any machine learning background. If you know what a loop and a matrix are, you have everything you need."
+ },
+ {
+  "slide": 0,
+  "cues": [
+   "view:.gen"
+  ],
+  "text": "Look at the sentence on the screen. The model read \"The server crashed because it ran out of\", and it wrote the next word: memory. That one step, done again and again, is the whole trick."
+ },
+ {
+  "slide": 0,
+  "cues": [
+   "view:.toc"
+  ],
+  "text": "The talk has three parts. First, how any language model works. Second, what makes this one different. And third, how it runs on a single desktop. Let's start."
+ },
+ {
+  "slide": 1,
+  "text": "Here is the one idea to hold on to. A language model is a function. The input is all the text so far. The output is a score for every possible next piece of text."
+ },
+ {
+  "slide": 1,
+  "cues": [
+   "view:figure"
+  ],
+  "text": "Follow the dots in the diagram. The tokens go into the model. The model runs 48 layers of multiply and add. And out come 248,320 scores, one for every entry in its vocabulary.",
+  "say": "Follow the dots in the diagram. The tokens go into the model. The model runs forty-eight layers of multiply and add. And out come about two hundred and fifty thousand scores, one for every entry in its vocabulary."
+ },
+ {
+  "slide": 1,
+  "text": "We pick one token, here \"memory\", append it to the input, and call the function again. That loop is the whole product. Answers, code, essays: all of it comes out one token at a time."
+ },
+ {
+  "slide": 1,
+  "cues": [
+   "view:.analogy"
+  ],
+  "text": "If that sounds like the word suggestions on your phone keyboard, you're right. It's the same idea, scaled up about a billion times, and it gets to see the whole conversation."
+ },
+ {
+  "slide": 2,
+  "text": "Step one. The model never sees letters. It sees tokens."
+ },
+ {
+  "slide": 2,
+  "text": "A tokenizer cuts text into pieces from a fixed list. Common words are a single piece. Rare words are split into several. And every piece has an integer ID."
+ },
+ {
+  "slide": 2,
+  "cues": [
+   "type:Tokenizers split unbelievably rare words into pieces."
+  ],
+  "text": "Here is a sentence being cut up as I type it. Short, common words stay whole. A long word like \"unbelievably\" breaks into chunks. The dot marks a leading space: the space is part of the token.",
+  "say": "Here is a sentence being cut up as I type it. Short, common words stay whole. A long word like unbelievably breaks into chunks. The dot marks a leading space: the space is part of the token."
+ },
+ {
+  "slide": 2,
+  "text": "This model's list has 248,320 entries. It covers many human languages, program code, and special markers, such as \"end of turn\", or \"an image goes here\".",
+  "say": "This model's list has two hundred forty-eight thousand, three hundred and twenty entries. It covers many human languages, program code, and special markers, such as end of turn, or, an image goes here."
+ },
+ {
+  "slide": 2,
+  "text": "A useful rule of thumb for English: one token is about three quarters of a word. You can type your own text in that box later and try it."
+ },
+ {
+  "slide": 3,
+  "text": "Step two. Integers become vectors. Each token ID picks one row from a big table: 248,320 rows, 2,560 columns. That row is the token's embedding, a list of 2,560 numbers.",
+  "say": "Step two. Integers become vectors. Each token ID picks one row from a big table, with one row for every token, and twenty-five sixty columns. That row is the token's embedding: a list of twenty-five hundred and sixty numbers."
+ },
+ {
+  "slide": 3,
+  "text": "Think of it as GPS coordinates, but with 2,560 axes instead of two. Nobody picked these numbers by hand. Training moved them until tokens used in similar ways ended up close together.",
+  "say": "Think of it as GPS coordinates, but with twenty-five hundred and sixty axes instead of two. Nobody picked these numbers by hand. Training moved them until tokens used in similar ways ended up close together."
+ },
+ {
+  "slide": 3,
+  "cues": [
+   "view:figure"
+  ],
+  "text": "The picture shows just two of those dimensions. Server, database and disk sit together. Cat and dog sit together, somewhere else. And look at the dashed arrows: going from \"server\" to \"servers\" points roughly the same way as going from \"cat\" to \"cats\". Direction carries meaning.",
+  "say": "The picture shows just two of those dimensions. Server, database and disk sit together. Cat and dog sit together, somewhere else. And look at the dashed arrows: going from server to servers points roughly the same way as going from cat to cats. Direction carries meaning."
+ },
+ {
+  "slide": 3,
+  "cues": [
+   "why:0"
+  ],
+  "text": "Why turn words into lists of numbers at all? A computer can only calculate with numbers, and an ID like 1 or 3 says nothing about meaning. With vectors, one cheap calculation, the dot product, tells us how related two words are. It works because training pushes words used in similar places toward similar vectors.",
+  "say": "Why turn words into lists of numbers at all? A computer can only calculate with numbers, and an ID like one or three says nothing about meaning. With vectors, one cheap calculation, the dot product, tells us how related two words are. It works because training pushes words used in similar places toward similar vectors."
+ },
+ {
+  "slide": 3,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Let's make it concrete with a tiny vocabulary: four words, three numbers each. Looking up \"server\", token ID 1, just means taking row one: 0.9, 0.4, minus 0.3.",
+  "say": "Let's make it concrete, with a tiny vocabulary: four words, three numbers each. Looking up server, token ID one, just means taking row one: zero point nine, zero point four, minus zero point three."
+ },
+ {
+  "slide": 3,
+  "cues": [
+   "step:0"
+  ],
+  "text": "To ask how similar two words are, we use the dot product. Multiply the numbers pair by pair, then add them up."
+ },
+ {
+  "slide": 3,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Server and database: 0.9 times 0.8 is 0.72, plus 0.20, plus 0.06. That's 0.98. High. They're related.",
+  "say": "Server and database: zero point nine times zero point eight is zero point seven two. Plus zero point two, plus zero point zero six. That's zero point nine eight. High. They're related."
+ },
+ {
+  "slide": 3,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Server and cat comes out at minus 0.38. Unrelated. Keep the dot product in mind. It comes back when we get to attention.",
+  "say": "Server and cat comes out at minus zero point three eight. Unrelated. Keep the dot product in mind. It comes back when we get to attention."
+ },
+ {
+  "slide": 4,
+  "text": "Step three: the one operation that matters. Almost everything in a model is multiply, then add."
+ },
+ {
+  "slide": 4,
+  "text": "A weight matrix, W, turns one vector into another. Each output number is one row of W, multiplied element by element with the input, and then summed.",
+  "say": "A weight matrix, called W, turns one vector into another. Each output number is one row of W, multiplied element by element with the input, and then summed."
+ },
+ {
+  "slide": 4,
+  "cues": [
+   "why:0"
+  ],
+  "text": "Why a matrix? A layer needs to mix its inputs, giving some more weight than others. Matrix times vector does exactly that: every output is a weighted sum of all the inputs, and the weights are what training learned. It's also exactly what GPUs are built for: billions of multiply-adds every second."
+ },
+ {
+  "slide": 4,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Here W has two rows and three columns, and the input x is 2, 1, 1. Row one: 1 times 2, plus 2 times 1, plus 0 times 1. That's 4.",
+  "say": "Here W has two rows and three columns, and the input, x, is two, one, one. Row one: one times two, plus two times one, plus zero times one. That's four."
+ },
+ {
+  "slide": 4,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Row two: 0 times 2, plus minus 1 times 1, plus 3 times 1. That's 2. So the output is 4, 2.",
+  "say": "Row two: zero times two, plus minus one times one, plus three times one. That's two. So the output is four, two."
+ },
+ {
+  "slide": 4,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Two rows times three columns: six multiply-adds. That's the whole cost."
+ },
+ {
+  "slide": 4,
+  "cues": [
+   "view:.work .note"
+  ],
+  "text": "In the real model, one expert matrix is 640 by 2,560, so the same recipe takes about 1.6 million multiply-adds. One token takes roughly six billion. That's why the hardware matters so much.",
+  "say": "In the real model, one expert matrix is six hundred and forty by twenty-five sixty, so the same recipe takes about one point six million multiply-adds. One token takes roughly six billion. That's why the hardware matters so much."
+ },
+ {
+  "slide": 5,
+  "text": "Step four. So what is \"the model\", really? It's a surprisingly short program.",
+  "say": "Step four. So what is, the model, really? It's a surprisingly short program."
+ },
+ {
+  "slide": 5,
+  "cues": [
+   "tip:tokenize"
+  ],
+  "text": "Read it from the top. First, tokenize the prompt."
+ },
+ {
+  "slide": 5,
+  "cues": [
+   "tip:embed"
+  ],
+  "text": "Then, inside the loop, look up the embedding of every token."
+ },
+ {
+  "slide": 5,
+  "cues": [
+   "tip:mix"
+  ],
+  "text": "Run them through 48 layers. Each layer does two things. mix_tokens is attention: the one place where tokens look at each other.",
+  "say": "Run them through forty-eight layers. Each layer does two things. Mix tokens is attention: the one place where tokens look at each other."
+ },
+ {
+  "slide": 5,
+  "cues": [
+   "tip:think"
+  ],
+  "text": "think is the feed-forward part. It works on each token alone, and it's where most of the stored knowledge lives.",
+  "say": "Think is the feed-forward part. It works on each token alone, and it's where most of the stored knowledge lives."
+ },
+ {
+  "slide": 5,
+  "cues": [
+   "tip:residual"
+  ],
+  "text": "Notice that each result is added to x. Nothing is written over. We'll come back to that in a moment."
+ },
+ {
+  "slide": 5,
+  "cues": [
+   "tip:lmhead"
+  ],
+  "text": "At the end, the vector of the last token is multiplied by lm_head. That gives one score for every entry in the vocabulary.",
+  "say": "At the end, the vector of the last token is multiplied by the L M head. That gives one score for every entry in the vocabulary."
+ },
+ {
+  "slide": 5,
+  "cues": [
+   "tip:softmax"
+  ],
+  "text": "Softmax turns those scores into probabilities, and sample rolls the dice."
+ },
+ {
+  "slide": 5,
+  "cues": [
+   "tip:append"
+  ],
+  "text": "Append the new token, and go round again, until the model produces its end-of-turn token."
+ },
+ {
+  "slide": 5,
+  "cues": [
+   "untip"
+  ],
+  "text": "The code is about twelve lines. The weights are the big part: tens of thousands of matrices, and about 121 billion numbers in the routed experts alone. Hover over any underlined word later for more detail.",
+  "say": "The code is about twelve lines. The weights are the big part: tens of thousands of matrices, and about a hundred and twenty-one billion numbers in the routed experts alone. Hover over any underlined word later, for more detail."
+ },
+ {
+  "slide": 6,
+  "text": "Step five. Where do the weights come from? Nobody writes them. They're tuned by trial and error."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "view:.steps"
+  ],
+  "text": "Training starts with random numbers and a huge pile of text, and it plays the same game: guess the next token. Show the model \"The capital of France is\". Early on, it gives \"Paris\" maybe three percent.",
+  "say": "Training starts with random numbers and a huge pile of text, and it plays the same game: guess the next token. Show the model: the capital of France is. Early on, it gives Paris maybe three percent."
+ },
+ {
+  "slide": 6,
+  "text": "The error is how surprised the model was by the real answer. Then calculus tells every weight which direction lowers that error, and each weight moves a tiny step that way. Repeat that trillions of times."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "view:.analogy"
+  ],
+  "text": "Picture a mixing desk with billions of knobs. Play a sample, hear how wrong it sounds, and nudge every knob slightly toward less wrong."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "why:0"
+  ],
+  "text": "Why do we need a recipe like this? Nobody can set billions of weights by hand. So we fix each one automatically: measure how wrong the answer is, find which way to turn the knob, and turn it a little. It works because the slope always points uphill, so a small step against it always lowers the loss."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Let's do one step by hand, with a model that has a single weight: y equals w times x. The input is 2, the right answer is 3, and w starts at 0.5.",
+  "say": "Let's do one step by hand, with a model that has a single weight: y equals w times x. The input is two, the right answer is three, and w starts at zero point five."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:0"
+  ],
+  "text": "The model predicts 0.5 times 2, which is 1.",
+  "say": "The model predicts zero point five times two, which is one."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:0"
+  ],
+  "text": "The error is 1 minus 3: minus 2. We square it, so the loss is 4. Squaring means being wrong in either direction costs.",
+  "say": "The error is one minus three: minus two. We square it, so the loss is four. Squaring means being wrong in either direction costs."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Now the key question. If w goes up a tiny bit, does the loss go up or down, and how fast?"
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:0"
+  ],
+  "text": "We can simply try it. At w equals 0.51, the loss is 3.92. It fell by about 8 for every 1 that w went up. So the slope is minus 8.",
+  "say": "We can simply try it. At w equals zero point five one, the loss is three point nine two. It fell by about eight for every one that w went up. So the slope is minus eight."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Or we use a formula, with no trial needed. The loss reacts to the error by 2 times the error. The error reacts to w by x. Multiply the two, that's the chain rule: d(loss)/dw equals 2 times error times x.",
+  "say": "Or we use a formula, with no trial needed. The loss reacts to the error by two times the error. The error reacts to w by x. Multiply the two, that's the chain rule: d loss by d w equals two, times the error, times x."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:0"
+  ],
+  "text": "2 times minus 2 times 2: minus 8. The same as our trial.",
+  "say": "Two, times minus two, times two: minus eight. The same as our trial."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:0"
+  ],
+  "text": "A negative slope means raising w lowers the loss. So w should go up. And the size, 8, says the curve is steep here.",
+  "say": "A negative slope means raising w lowers the loss. So w should go up. And the size, eight, says the curve is steep here."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:0"
+  ],
+  "text": "The update is w minus step size times slope: 0.5 minus 0.05 times minus 8. That gives 0.9. Minus the slope means walking downhill.",
+  "say": "The update is w, minus step size times slope: zero point five, minus zero point zero five times minus eight. That gives zero point nine. Minus the slope means walking downhill."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Check: the prediction is now 1.8, and the loss dropped from 4 to 1.44. One step, and we're much closer.",
+  "say": "Check: the prediction is now one point eight, and the loss dropped from four, to one point four four. One step, and we're much closer."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "gd"
+  ],
+  "text": "Now watch the chart. The ball is the weight, rolling down the loss curve. Each step moves it by the step size times the slope. As the curve flattens near the bottom, the slope shrinks, so the steps shrink by themselves. It settles at w equals 1.5, where the prediction is exactly 3.",
+  "say": "Now watch the chart. The ball is the weight, rolling down the loss curve. Each step moves it by the step size times the slope. As the curve flattens near the bottom, the slope shrinks, so the steps shrink by themselves. It settles at w equals one point five, where the prediction is exactly three."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "why:1"
+  ],
+  "text": "Training needs the slope of every weight, at every step. Measuring each one by trial would cost an extra run per weight, which is far too slow. The derivative gives the exact slope from a formula instead."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:1"
+  ],
+  "text": "So what does d(loss)/dw actually mean? It's the derivative: a tiny change in the loss, divided by the tiny change in w that caused it. With smaller and smaller steps, the ratio goes minus 7.6, minus 7.96, minus 7.996. It settles on minus 8. That settled value is the derivative.",
+  "say": "So what does d loss by d w actually mean? It's the derivative: a tiny change in the loss, divided by the tiny change in w that caused it. With smaller and smaller steps, the ratio goes minus seven point six, minus seven point nine six, minus seven point nine nine six. It settles on minus eight. That settled value is the derivative."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:1"
+  ],
+  "text": "You can also get it from a few simple rules. First, expand the loss: 4 w squared, minus 12 w, plus 9.",
+  "say": "You can also get it from a few simple rules. First, expand the loss: four w squared, minus twelve w, plus nine."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:1"
+  ],
+  "text": "The slope of w squared is 2w. The slope of w is 1. And a plain number has no slope at all.",
+  "say": "The slope of w squared is two w. The slope of w is one. And a plain number has no slope at all."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:1"
+  ],
+  "text": "So the derivative is 8w minus 12: one formula that gives the slope at every w.",
+  "say": "So the derivative is eight w minus twelve: one formula that gives the slope at every w."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:1"
+  ],
+  "text": "At w equals 0.5, that's minus 8, matching the table.",
+  "say": "At w equals zero point five, that's minus eight, matching the table."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:1"
+  ],
+  "text": "At 1.5, it's zero. Flat. That's the bottom of the curve, where training stops moving w.",
+  "say": "At one point five, it's zero. Flat. That's the bottom of the curve, where training stops moving w."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "step:1"
+  ],
+  "text": "Why bother with rules? A real model needs one derivative per weight, billions of them. Measuring each one by trial would take billions of extra runs. The rules, applied backwards through the layers, give all of them for about the cost of two extra passes. That's backpropagation."
+ },
+ {
+  "slide": 6,
+  "cues": [
+   "view:.stack .note"
+  ],
+  "text": "One more thing to take away. Knowledge in a model isn't stored as records you can look up. It's spread across the weights as tendencies. That's also why it can say false things, fluently."
+ },
+ {
+  "slide": 7,
+  "text": "Step six: inside the stack. Every token carries a vector of 2,560 numbers through all 48 layers. This is called the residual stream. Think of it as a shared bus.",
+  "say": "Step six: inside the stack. Every token carries a vector of twenty-five sixty numbers through all forty-eight layers. This is called the residual stream. Think of it as a shared bus."
+ },
+ {
+  "slide": 7,
+  "cues": [
+   "view:figure"
+  ],
+  "text": "Each layer has two parts. Attention reads from the bus, looks at the other tokens, and adds what it found back. Then the feed-forward block reads, works on this token alone, and adds its result too. Follow the dots."
+ },
+ {
+  "slide": 7,
+  "cues": [
+   "why:0"
+  ],
+  "text": "Why add, instead of replacing the vector? Then each block only has to learn a small correction, and nothing learned by earlier layers gets lost. It's also what makes a stack of 48 layers trainable: the learning signal flows straight back through the additions.",
+  "say": "Why add, instead of replacing the vector? Then each block only has to learn a small correction, and nothing learned by earlier layers gets lost. It's also what makes a stack of forty-eight layers trainable: the learning signal flows straight back through the additions."
+ },
+ {
+  "slide": 7,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Nothing gets replaced. Each block adds a small correction. Here's a stream of three numbers: 1, 0, 2.",
+  "say": "Nothing gets replaced. Each block adds a small correction. Here's a stream of three numbers: one, zero, two."
+ },
+ {
+  "slide": 7,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Attention adds 0.1, 0.3, minus 0.2. Now we have 1.1, 0.3, 1.8.",
+  "say": "Attention adds zero point one, zero point three, minus zero point two. Now we have one point one, zero point three, one point eight."
+ },
+ {
+  "slide": 7,
+  "cues": [
+   "step:0"
+  ],
+  "text": "The feed-forward block adds its own small correction, and we end with 0.7, 0.3, 2.3.",
+  "say": "The feed-forward block adds its own small correction, and we end with zero point seven, zero point three, two point three."
+ },
+ {
+  "slide": 7,
+  "text": "Loosely speaking, early layers handle spelling and grammar, middle layers build up facts and relations, and late layers turn all of that into a guess for the next token."
+ },
+ {
+  "slide": 8,
+  "text": "Step seven, the heart of it: attention. How does information move between tokens?"
+ },
+ {
+  "slide": 8,
+  "text": "Every token makes three vectors from its stream. A query: what am I looking for? A key: what do I contain? And a value: what do I hand over?"
+ },
+ {
+  "slide": 8,
+  "text": "A token compares its query with the key of every earlier token. Good matches get a high weight, and the token takes a weighted average of their values. Tokens only look backwards. The future hasn't been written yet."
+ },
+ {
+  "slide": 8,
+  "cues": [
+   "view:.analogy"
+  ],
+  "text": "If you know SQL, it's like a select ordered by similarity, except that every row contributes a little, instead of one row winning."
+ },
+ {
+  "slide": 8,
+  "cues": [
+   "att"
+  ],
+  "text": "Watch the sentence on the right: \"The engineer restarted the server because it kept crashing.\" For each word, the shading shows where it looks.",
+  "say": "Watch the sentence on the right: the engineer restarted the server, because it kept crashing. For each word, the shading shows where it looks."
+ },
+ {
+  "slide": 8,
+  "text": "When we reach \"it\", most of its weight lands on \"server\". That's how the model works out what \"it\" refers to.",
+  "say": "When we reach the word it, most of its weight lands on server. That's how the model works out what it refers to."
+ },
+ {
+  "slide": 8,
+  "cues": [
+   "why:0"
+  ],
+  "text": "Why do we need attention? A word's meaning depends on other words. \"It\", on its own, means nothing until it's linked to \"server\". Attention lets each token pull in what it needs from earlier tokens, and because relevance is just a dot product, the model can learn what to look for.",
+  "say": "Why do we need attention? A word's meaning depends on other words. It, on its own, means nothing, until it's linked to server. Attention lets each token pull in what it needs from earlier tokens, and because relevance is just a dot product, the model can learn what to look for."
+ },
+ {
+  "slide": 8,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Let's calculate that, with vectors of just two numbers. The query of \"it\" is 1, 0. We match it against each key with a dot product: 2 for server, 0 for crashed, and 0.5 for \"it\" itself.",
+  "say": "Let's calculate that, with vectors of just two numbers. The query of it, is one, zero. We match it against each key with a dot product: two for server, zero for crashed, and zero point five for it, itself."
+ },
+ {
+  "slide": 8,
+  "cues": [
+   "step:0"
+  ],
+  "text": "We divide by the square root of the vector length. That keeps the numbers in a sensible range."
+ },
+ {
+  "slide": 8,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Softmax turns them into weights that add up to one: about 63 percent server, 15 percent crashed, 22 percent \"it\".",
+  "say": "Softmax turns them into weights that add up to one: about sixty-three percent server, fifteen percent crashed, twenty-two percent it."
+ },
+ {
+  "slide": 8,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Finally, blend the values with those weights. The result is 2.73, 0.52: mostly the value of \"server\". And that gets added to the stream of \"it\".",
+  "say": "Finally, blend the values with those weights. The result is two point seven three, zero point five two: mostly the value of server. And that gets added to the stream of it."
+ },
+ {
+  "slide": 8,
+  "cues": [
+   "view:.work > .note"
+  ],
+  "text": "In the real model the vectors have 256 numbers, there are many heads per layer, each looking for something different, and there can be 200,000 earlier tokens to look at. Keep that last number in mind: it's the problem this model's design is built around.",
+  "say": "In the real model the vectors have two hundred and fifty-six numbers, there are many heads per layer, each looking for something different, and there can be two hundred thousand earlier tokens to look at. Keep that last number in mind: it's the problem this model's design is built around."
+ },
+ {
+  "slide": 9,
+  "text": "Step eight: choosing the next word. The last layer gives a raw score to every entry in the vocabulary. Softmax turns those scores into odds that add up to 100 percent. Then the sampler rolls the dice.",
+  "say": "Step eight: choosing the next word. The last layer gives a raw score to every entry in the vocabulary. Softmax turns those scores into odds that add up to one hundred percent. Then the sampler rolls the dice."
+ },
+ {
+  "slide": 9,
+  "cues": [
+   "temp:0.7"
+  ],
+  "text": "Here are the odds for \"The server crashed because it ran out of...\". At temperature 0.7, memory is the favourite at about 71 percent. Disk space gets about 15, and connections about 7.",
+  "say": "Here are the odds for: the server crashed because it ran out of. At temperature zero point seven, memory is the favourite, at about seventy-one percent. Disk space gets about fifteen, and connections about seven."
+ },
+ {
+  "slide": 9,
+  "cues": [
+   "temp:0.2"
+  ],
+  "text": "Temperature divides the scores before softmax. Turn it down to 0.2, and the odds sharpen: memory takes almost everything.",
+  "say": "Temperature divides the scores before softmax. Turn it down to zero point two, and the odds sharpen: memory takes almost everything."
+ },
+ {
+  "slide": 9,
+  "cues": [
+   "temp:1.5"
+  ],
+  "text": "Turn it up to 1.5, and they flatten. Memory drops to about 40 percent, and even coffee gets a small chance. That's why the same question can get different answers. Temperature is a setting, not a property of the model.",
+  "say": "Turn it up to one point five, and they flatten. Memory drops to about forty percent, and even coffee gets a small chance. That's why the same question can get different answers. Temperature is a setting, not a property of the model."
+ },
+ {
+  "slide": 9,
+  "cues": [
+   "temp:0.7",
+   "click:roll"
+  ],
+  "text": "Back to 0.7, and roll the dice. Each roll can pick a different word, but most of the time it picks memory.",
+  "say": "Back to zero point seven, and roll the dice. Each roll can pick a different word, but most of the time, it picks memory."
+ },
+ {
+  "slide": 9,
+  "cues": [
+   "why:0"
+  ],
+  "text": "Why softmax? The model gives scores, but to pick a word we need odds that add up to 100 percent. Softmax keeps the order, never gives a word exactly zero, and changes smoothly, which training needs to work out which way to nudge each weight.",
+  "say": "Why softmax? The model gives scores, but to pick a word, we need odds that add up to one hundred percent. Softmax keeps the order, never gives a word exactly zero, and changes smoothly, which training needs to work out which way to nudge each weight."
+ },
+ {
+  "slide": 9,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Let's calculate it with three words. The scores, also called logits, are the raw numbers from the last layer: 2 for memory, 1 for disk, 0 for time. Higher means a better fit. They can be any number, even negative.",
+  "say": "Let's calculate it with three words. The scores, also called logits, are the raw numbers from the last layer: two for memory, one for disk, zero for time. Higher means a better fit. They can be any number, even negative."
+ },
+ {
+  "slide": 9,
+  "cues": [
+   "step:0"
+  ],
+  "text": "First, e to the power of each score. e is a fixed number, about 2.718. e to the 2 is 7.39, e to the 1 is 2.72, and e to the 0 is 1. The result is always positive, and each extra point of score multiplies it by 2.7.",
+  "say": "First, e to the power of each score. e is a fixed number, about two point seven one eight. e to the two is seven point three nine, e to the one is two point seven two, and e to the zero is one. The result is always positive, and each extra point of score multiplies it by two point seven."
+ },
+ {
+  "slide": 9,
+  "cues": [
+   "step:0"
+  ],
+  "text": "At temperature 1, we divide each by the total. 7.39 over 11.11 gives memory 66.5 percent.",
+  "say": "At temperature one, we divide each by the total. Seven point three nine, over eleven point one one, gives memory sixty-six and a half percent."
+ },
+ {
+  "slide": 9,
+  "cues": [
+   "step:0"
+  ],
+  "text": "At temperature 0.5, we divide the scores by 0.5, which doubles them to 4, 2 and 0. The gaps double, and memory gets 86.7 percent.",
+  "say": "At temperature zero point five, we divide the scores by zero point five, which doubles them, to four, two, and zero. The gaps double, and memory gets eighty-six point seven percent."
+ },
+ {
+  "slide": 9,
+  "cues": [
+   "step:0"
+  ],
+  "text": "At temperature 2, the scores are halved to 1, 0.5 and 0. The odds flatten, and memory gets only about 51 percent. Same model, same scores. Only the dice changed.",
+  "say": "At temperature two, the scores are halved, to one, zero point five, and zero. The odds flatten, and memory gets only about fifty-one percent. Same model, same scores. Only the dice changed."
+ },
+ {
+  "slide": 9,
+  "cues": [
+   "view:.work > .note"
+  ],
+  "text": "The real model does this over 248,320 scores, one per vocabulary entry. The formula is the same.",
+  "say": "The real model does this over two hundred and forty-eight thousand, three hundred and twenty scores, one per vocabulary entry. The formula is the same."
+ },
+ {
+  "slide": 10,
+  "text": "Step nine: why long context is expensive. Every token leaves a key and a value behind, in every attention layer. They never change, so the engine stores them instead of recomputing them. That store is the KV cache.",
+  "say": "Step nine: why long context is expensive. Every token leaves a key and a value behind, in every attention layer. They never change, so the engine stores them, instead of recomputing them. That store is the K V cache."
+ },
+ {
+  "slide": 10,
+  "text": "The cache grows with every token, and each new token also has to compare against all of it. So long conversations cost both memory and time."
+ },
+ {
+  "slide": 10,
+  "cues": [
+   "view:.kvbars"
+  ],
+  "text": "Here's what that means for this model at 200,000 tokens. If all 48 layers used full attention, the cache would take 18.3 gigabytes. This model needs 4.6, because only 12 of its layers keep a KV cache.",
+  "say": "Here's what that means for this model, at two hundred thousand tokens. If all forty-eight layers used full attention, the cache would take eighteen point three gigabytes. This model needs four point six, because only twelve of its layers keep a K V cache."
+ },
+ {
+  "slide": 10,
+  "cues": [
+   "view:.note.mono"
+  ],
+  "text": "The arithmetic: 12 layers, times 2 heads, times 256 numbers, times 2 for key and value, times 2 bytes. That's 24 kilobytes for every token. Keeping this number down is what most of Part II is about.",
+  "say": "The arithmetic: twelve layers, times two heads, times two hundred and fifty-six numbers, times two for key and value, times two bytes. That's twenty-four kilobytes for every token. Keeping this number down is what most of part two is about."
+ },
+ {
+  "slide": 11,
+  "text": "Part II: what makes Qwen3.8-Flash-Next different. It keeps the same loop from Part I. It changes where the work and the memory go, so that a large model runs at a small model's cost. There are six changes.",
+  "say": "Part two: what makes Kwen three point eight Flash Next different. It keeps the same loop from part one. It changes where the work and the memory go, so that a large model runs at a small model's cost. There are six changes."
+ },
+ {
+  "slide": 11,
+  "cues": [
+   "mark:.journey > div:nth-child(1)"
+  ],
+  "text": "First, mixture of experts. Each layer has 512 small feed-forward networks, and each token uses only 10 of them, plus one shared expert.",
+  "say": "First, mixture of experts. Each layer has five hundred and twelve small feed-forward networks, and each token uses only ten of them, plus one shared expert."
+ },
+ {
+  "slide": 11,
+  "cues": [
+   "mark:.journey > div:nth-child(2)"
+  ],
+  "text": "Second, hybrid layers. 36 of the 48 layers use Gated DeltaNet, a fixed-size memory. Only 12 keep a KV cache.",
+  "say": "Second, hybrid layers. Thirty-six of the forty-eight layers use Gated Delta Net, a fixed-size memory. Only twelve keep a K V cache."
+ },
+ {
+  "slide": 11,
+  "cues": [
+   "mark:.journey > div:nth-child(3)"
+  ],
+  "text": "Third, sparse attention. Those 12 layers read at most about 2,048 past tokens, chosen by a cheap index.",
+  "say": "Third, sparse attention. Those twelve layers read at most about two thousand past tokens, chosen by a cheap index."
+ },
+ {
+  "slide": 11,
+  "cues": [
+   "mark:.journey > div:nth-child(4)"
+  ],
+  "text": "Fourth, hyper-connections: several residual streams instead of one, with learned mixing between them."
+ },
+ {
+  "slide": 11,
+  "cues": [
+   "mark:.journey > div:nth-child(5)"
+  ],
+  "text": "Fifth, a phrase table: a 35.8 gigabyte lookup table, keyed by a hash of the last few tokens, and added to one layer.",
+  "say": "Fifth, a phrase table: a thirty-five point eight gigabyte lookup table, keyed by a hash of the last few tokens, and added to one layer."
+ },
+ {
+  "slide": 11,
+  "cues": [
+   "mark:.journey > div:nth-child(6)"
+  ],
+  "text": "And sixth, a vision encoder that turns images into tokens, and a draft head that guesses several tokens ahead. Let's take them one at a time."
+ },
+ {
+  "slide": 12,
+  "text": "Change one: mixture of experts. In a plain model, every token goes through the same big feed-forward network. Here, that network is cut into 512 small experts per layer.",
+  "say": "Change one: mixture of experts. In a plain model, every token goes through the same big feed-forward network. Here, that network is cut into five hundred and twelve small experts per layer."
+ },
+ {
+  "slide": 12,
+  "text": "A tiny router scores all 512 for the current token, and runs only the top 10. One shared expert always runs as well. Think of a hospital with 512 specialists and a triage nurse: you see 10 of them, plus a general practitioner who sees everyone.",
+  "say": "A tiny router scores all five hundred and twelve for the current token, and runs only the top ten. One shared expert always runs as well. Think of a hospital with five hundred and twelve specialists, and a triage nurse: you see ten of them, plus a general practitioner who sees everyone."
+ },
+ {
+  "slide": 12,
+  "cues": [
+   "moe"
+  ],
+  "text": "Watch the router as a sentence goes through. Each word lights up a different set of 10 experts. The pattern here is simulated, but the shape is real.",
+  "say": "Watch the router as a sentence goes through. Each word lights up a different set of ten experts. The pattern here is simulated, but the shape is real."
+ },
+ {
+  "slide": 12,
+  "cues": [
+   "view:.stats"
+  ],
+  "text": "So the model stores a lot of knowledge, but uses about 2 percent of its experts per token. That's the label 125B-A6B: 125 billion weights in total, about 6 billion active per token.",
+  "say": "So the model stores a lot of knowledge, but uses about two percent of its experts per token. That's the label: one hundred and twenty-five B, A six B. One hundred and twenty-five billion weights in total, about six billion active per token."
+ },
+ {
+  "slide": 12,
+  "cues": [
+   "why:0"
+  ],
+  "text": "Why do this? A bigger feed-forward network knows more, but every token pays for all of it. Running only the best-matching few gives the knowledge of 125 billion weights for the cost of about 6 billion. It works because the router is trained together with the experts: experts drift toward specialties, and the router learns which one is good at what.",
+  "say": "Why do this? A bigger feed-forward network knows more, but every token pays for all of it. Running only the best-matching few gives the knowledge of one hundred and twenty-five billion weights, for the cost of about six billion. It works because the router is trained together with the experts: experts drift toward specialties, and the router learns which one is good at what."
+ },
+ {
+  "slide": 12,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Now a tiny example: 4 experts, pick 2, and a token with just 2 numbers, 1 and 2. The router is a small matrix. Multiplying gives one score per expert: 1, 2, 3 and minus 1.",
+  "say": "Now a tiny example: four experts, pick two, and a token with just two numbers, one and two. The router is a small matrix. Multiplying gives one score per expert: one, two, three, and minus one."
+ },
+ {
+  "slide": 12,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Pick the top 2: expert 2 with score 3, and expert 1 with score 2. Experts 0 and 3 do no work. That skipped work is the whole saving.",
+  "say": "Pick the top two: expert two, with score three, and expert one, with score two. Experts zero and three do no work. That skipped work is the whole saving."
+ },
+ {
+  "slide": 12,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Softmax over just the two chosen scores gives weights of 73 and 27 percent. They add up to 100, and the better match counts more.",
+  "say": "Softmax over just the two chosen scores gives weights of seventy-three and twenty-seven percent. They add up to one hundred, and the better match counts more."
+ },
+ {
+  "slide": 12,
+  "cues": [
+   "step:0"
+  ],
+  "text": "The output is the weighted mix of the two experts, plus the shared expert, which always runs."
+ },
+ {
+  "slide": 12,
+  "cues": [
+   "step:0"
+  ],
+  "text": "What's inside an expert? Three small matrices: gate, up and down.",
+  "say": "What's inside an expert? Three small matrices: gate, up, and down."
+ },
+ {
+  "slide": 12,
+  "cues": [
+   "step:0"
+  ],
+  "text": "The gate matrix times the token gives 1, minus 1. Then a squash sets negatives to zero: 1, 0.",
+  "say": "The gate matrix times the token gives one, minus one. Then a squash sets negatives to zero: one, zero."
+ },
+ {
+  "slide": 12,
+  "cues": [
+   "step:0"
+  ],
+  "text": "The up matrix gives 2, 3.",
+  "say": "The up matrix gives two, three."
+ },
+ {
+  "slide": 12,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Multiply the two, element by element: 2, 0. The gate has switched the second part off.",
+  "say": "Multiply the two, element by element: two, zero. The gate has switched the second part off."
+ },
+ {
+  "slide": 12,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Finally, the down matrix gives 2, 1. That's the output of expert 2.",
+  "say": "Finally, the down matrix gives two, one. That's the output of expert two."
+ },
+ {
+  "slide": 12,
+  "cues": [
+   "view:.work > .note"
+  ],
+  "text": "In the real model, each layer scores 512 experts, the top 10 run, and each expert is three matrices of 640 by 2,560.",
+  "say": "In the real model, each layer scores five hundred and twelve experts, the top ten run, and each expert is three matrices of six hundred and forty, by two thousand five hundred and sixty."
+ },
+ {
+  "slide": 13,
+  "cues": [
+   "view:.strip"
+  ],
+  "text": "Change two: hybrid layers. Look at the strip at the top. Three of every four layers use Gated DeltaNet. Only every fourth layer is full attention: 12 of the 48.",
+  "say": "Change two: hybrid layers. Look at the strip at the top. Three of every four layers use Gated Delta Net. Only every fourth layer is full attention: twelve of the forty-eight."
+ },
+ {
+  "slide": 13,
+  "cues": [
+   "view:.diagram"
+  ],
+  "text": "Full attention keeps a KV cache, one row per past token, and it grows forever. DeltaNet keeps a fixed-size state instead. It's the same size at token 10 and at token 200,000.",
+  "say": "Full attention keeps a K V cache, one row per past token, and it grows forever. Delta Net keeps a fixed-size state instead. It's the same size at token ten, and at token two hundred thousand."
+ },
+ {
+  "slide": 13,
+  "text": "Each new token does three things to that state. It fades old content a little. It corrects what's stored under its key. Then it reads with its query. The cost per token stays flat, no matter how long the text gets."
+ },
+ {
+  "slide": 13,
+  "cues": [
+   "view:.analogy"
+  ],
+  "text": "Think of a meeting. Full attention keeps the whole transcript. DeltaNet keeps a whiteboard: it smudges old notes and overwrites the entry for the current topic. Mixing both gives a cheap running summary, plus exact recall every fourth layer.",
+  "say": "Think of a meeting. Full attention keeps the whole transcript. Delta Net keeps a whiteboard: it smudges old notes, and overwrites the entry for the current topic. Mixing both gives a cheap running summary, plus exact recall every fourth layer."
+ },
+ {
+  "slide": 13,
+  "cues": [
+   "why:0"
+  ],
+  "text": "Why do we do this? Full attention compares each new token against every earlier one, so each token costs more as the text grows. DeltaNet squeezes the past into a fixed-size matrix. It works because fading makes room for new content, and writing only the error means a fact stored twice isn't stored double.",
+  "say": "Why do we do this? Full attention compares each new token against every earlier one, so each token costs more as the text grows. Delta Net squeezes the past into a fixed-size matrix. It works because fading makes room for new content, and writing only the error means a fact stored twice isn't stored double."
+ },
+ {
+  "slide": 13,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Here's one update of a 2 by 2 state. The new token has key 1, 0 and value 1, 3. First, fade: multiply the state by 0.9. The 2 becomes 1.8, and the 1 becomes 0.9.",
+  "say": "Here's one update of a two by two state. The new token has key one, zero, and value one, three. First, fade: multiply the state by zero point nine. The two becomes one point eight, and the one becomes zero point nine."
+ },
+ {
+  "slide": 13,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Second, recall what's already stored under this key. The state times the key gives 1.8, 0.",
+  "say": "Second, recall what's already stored under this key. The state times the key gives one point eight, zero."
+ },
+ {
+  "slide": 13,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Third, the error: the value we want, 1, 3, minus what's stored. That's minus 0.8, 3. Only this difference gets written.",
+  "say": "Third, the error: the value we want, one, three, minus what's stored. That's minus zero point eight, three. Only this difference gets written."
+ },
+ {
+  "slide": 13,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Fourth, correct: add half the error along the key. The first column, the slot for this key, becomes 1.4, 1.5.",
+  "say": "Fourth, correct: add half the error along the key. The first column, the slot for this key, becomes one point four, one point five."
+ },
+ {
+  "slide": 13,
+  "cues": [
+   "step:0"
+  ],
+  "text": "Finally, read with query 1, 0, and we get 1.4, 1.5. The value under this key moved halfway from 1.8, 0 toward 1, 3. And the state is still 2 by 2.",
+  "say": "Finally, read with query one, zero, and we get one point four, one point five. The value under this key moved halfway, from one point eight, zero, toward one, three. And the state is still two by two."
+ },
+ {
+  "slide": 13,
+  "text": "Hybrid layers shrink the cache. But the 12 full-attention layers still compare against every past token. Change three deals with that.",
+  "say": "Hybrid layers shrink the cache. But the twelve full-attention layers still compare against every past token. Change three deals with that."
+ }
+]
